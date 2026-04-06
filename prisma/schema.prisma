@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime     @default(now())
+  apiKeys      UserApiKey[]
+  evaluations  Evaluation[]
+}
+
+model UserApiKey {
+  id           String   @id @default(cuid())
+  userId       String
+  provider     String
+  encryptedKey String
+  baseUrl      String?
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}
+
+model Evaluation {
+  id          String            @id @default(cuid())
+  userId      String
+  url         String
+  task        String
+  provider    String
+  model       String
+  status      String            @default("queued")
+  errorMsg    String?
+  createdAt   DateTime          @default(now())
+  completedAt DateTime?
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  steps       EvaluationStep[]
+  result      EvaluationResult?
+}
+
+model EvaluationStep {
+  id             String     @id @default(cuid())
+  evaluationId   String
+  stepNumber     Int
+  action         String
+  actionDetail   String?
+  observation    String?
+  screenshotPath String?
+  createdAt      DateTime   @default(now())
+  evaluation     Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+}
+
+model EvaluationResult {
+  id                  String     @id @default(cuid())
+  evaluationId        String     @unique
+  taskCompletionScore Int
+  taskCompletionNotes String
+  visualClarityScore  Int
+  visualClarityNotes  String
+  errorHandlingScore  Int
+  errorHandlingNotes  String
+  accessibilityScore  Int
+  accessibilityNotes  String
+  overallScore        Int
+  summary             String
+  recommendations     String[]
+  evaluation          Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+}
